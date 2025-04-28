@@ -1,23 +1,20 @@
 FROM mysql:lts-oraclelinux9
 
-WORKDIR /etc
-
-#------------------------------------------------------------------
 # The following three settings are required by Confluence (7.19):
 #------------------------------------------------------------------
 
 # Set the MySQL database to use `read-committed` isolation:
-RUN sed -i '/user=mysql/a transaction-isolation=read-committed' my.cnf
+RUN sed -i '/user=mysql/a transaction-isolation=read-committed' /etc/my.cnf
 
 # Set the MySQL character set server to `utf8mb4`:
-RUN sed -i '/user=mysql/a character_set_server=utf8mb4' my.cnf
+RUN sed -i '/user=mysql/a character_set_server=utf8mb4' /etc/my.cnf
 
 # Set the MySQL collation server rules for character data sorting and comparison:
-RUN sed -i '/user=mysql/a collation_server=utf8mb4_bin' my.cnf
+RUN sed -i '/user=mysql/a collation_server=utf8mb4_bin' /etc/my.cnf
 
 #------------------------------------------------------------------
 # Settings for Confluence health checks:
 #------------------------------------------------------------------
 
 # The following is required to pass a self-check on the InnoDB log file size:
-RUN sed -i '/user=mysql/a innodb_log_file_size=256M'  
+RUN sed -i '/user=mysql/a innodb_log_file_size=256M' /etc/my.cnf 
