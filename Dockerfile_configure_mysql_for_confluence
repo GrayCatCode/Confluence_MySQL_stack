@@ -14,3 +14,10 @@ RUN sed -i '/user=mysql/a character_set_server=utf8mb4' my.cnf
 
 # Set the MySQL collation server rules for character data sorting and comparison:
 RUN sed -i '/user=mysql/a collation_server=utf8mb4_bin' my.cnf
+
+#------------------------------------------------------------------
+# Settings for Confluence health checks:
+#------------------------------------------------------------------
+
+# The following is required to pass a self-check on the InnoDB log file size:
+RUN sed -i '/user=mysql/a innodb_log_file_size=256M'  
