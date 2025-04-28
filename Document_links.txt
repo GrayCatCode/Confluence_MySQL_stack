@@ -1,0 +1,3 @@
+Versioned Confluence (v7.19) REST API documentation:
+
+https://docs.atlassian.com/ConfluenceServer/rest/7.19.0/
