@@ -2,17 +2,17 @@ FROM atlassian/confluence:7.19-ubuntu-jdk11
 
 WORKDIR /root
 
-# Create a directory for the MySQL driver JAR package:
+# Create a directory for the MySQL driver JAr package:
 RUN mkdir mysql_jdbc_driver
 WORKDIR /root/mysql_jdbc_driver
 
-# Copy the JDBC driver package for MySQL/Ubunto into the file system:
+# Copy the JDBC driver package for MySQL/Ubuntu into the file system:
 COPY --chown=root:root mysql-connector-j_9.3.0-1ubuntu24.04_all.deb .
 
 # Install the JDBC driver package for MySQL/Ubuntu into the OS;
 RUN apt install ./mysql-connector-j_9.3.0-1ubuntu24.04_all.deb -y
 
-# Once the JDBC driver package is installed, the JAR file will be
+# Once the JDBC driver package is installed, the JAr file will be
 # located at /usr/share/java; copy it to the Confluence Java library
 # directory so it gets picked up by Confluence when it's running:
 RUN cp /usr/share/java/mysql-connector-j-9.3.0.jar /opt/atlassian/confluence/confluence/WEB-INF/lib
