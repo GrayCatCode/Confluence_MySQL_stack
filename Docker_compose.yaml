@@ -17,7 +17,7 @@ services:
     - confluence_network
 
   confluence:
-    image: atlassian/confluence:7.19-ubuntu-jdk11-mysqlj
+    image: atlassian/confluence:7.19.0-ubuntu-jdk11-mysqlj
     restart: no
     ports:
     - 8090:8090
