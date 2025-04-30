@@ -6,7 +6,7 @@
 CONFLUENCE_URL="http://localhost:8090"
 
 # PAGE_URL=“Your confluence page URL”
-PAGE_URL="http://localhost:8090/display/TUS/First+testuser+page"
+PAGE_URL="http://localhost:8090/display/TUS/Test+User+Page+1"
 
 USERNAME="testuser"
 
