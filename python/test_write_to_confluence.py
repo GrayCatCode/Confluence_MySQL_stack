@@ -55,4 +55,4 @@ try:
 except requests.exceptions.RequestException as e:
 
     # A serious problem happened, like an SSLError or InvalidURL
-    print("Error: {}".format(e))
+    print("An execption was thrown: {}".format(e))
