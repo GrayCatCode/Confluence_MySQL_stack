@@ -81,21 +81,25 @@ if __name__ == "__main__":
         }
     }
 
+    # We're ready to call the API:
     print("Attempt to call the Confluence API and write a new page ...")
 
-    # We're ready to call the api
     try:
 
+        # Set the request headers with the username and password of the user
+        # who has permissions to write the page to the target space in Confluence:
         #basic_auth = HTTPBasicAuth('{email you use to log in}', auth_token)
         basic_auth = requests.auth.HTTPBasicAuth(user, pwd)
 
+        # Send the request to the target Confluence instance via HTTP POST:
         response = requests.post(url=url, data=json.dumps(data), headers=headers, auth=basic_auth)
 
-        # Consider any status other than 2xx an error
+        # Check the response received back from Confluence;
+        # consider any HTTP status code other than 2xx an error:
         if not response.status_code // 100 == 2:
             print("Error: Unexpected response {}".format(response))
         else:
-            print('The page was created in Confluence.')
+            print('The page was created in Confluence!')
 
     except requests.exceptions.RequestException as e:
 
