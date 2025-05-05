@@ -5,13 +5,14 @@ import re
 import requests
 import urllib
 
-# Regex pattern to match the page ID if already in URL:
+# Regex pattern to match the Confluence page ID if already in URL:
 page_id_in_url_regex_pattern = re.compile(r"\?pageId=(\d+)")
 
 #================================================================================================
 # Function that extracts the ID of the Confluence page specified in the `page_url`:
 #================================================================================================
 def get_page_id_from_url(confluence, url):
+    """ Extracts the page ID from the given URL or retrieves it using the Confluence API. """
     page_url = urllib.parse.unquote(url) #unquoting url to deal with special characters like '%'
     space, page_title = page_url.split("/")[-2:]
 
@@ -30,7 +31,18 @@ def get_page_id_from_url(confluence, url):
 # Function that reads the content of an unstructured text file:
 #================================================================================================
 def read_text_file(file_path):
-    """Reads the content of an unstructured text file."""
+    """Reads the content of an unstructured text file in its entirety."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file {file_path} does not exist.")
+    
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.readlines()
+
+#================================================================================================
+# Function that reads the content of an unstructured text file:
+#================================================================================================
+def read_text_file_by_line(file_path):
+    """Reads the content of an unstructured text file line-by-line."""
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"The file {file_path} does not exist.")
     
@@ -43,7 +55,7 @@ def read_text_file(file_path):
         # Read the first line of the file:
         line = file.readline()
 
-        # Loop through all the lines in the file:
+        # Loop through all the rest of the lines in the file:
         while line:
 
             # Add the last line read to the string:
@@ -61,9 +73,38 @@ def read_text_file(file_path):
         return file_content
 
 #================================================================================================
+# Method which takes text content and applies format for Confluence's `storage` format:
+#================================================================================================
+def format_for_confluence(content):
+    """
+    Formats the content into Confluence Storage Format.
+    Assumes sections are separated by blank lines.
+    """
+    confluence_content = "<ac:structured-macro ac:name=\"section\">\n"
+    for line in content:
+        line = line.strip()
+        if not line:
+            # Close the current section and start a new one
+            confluence_content += "</ac:structured-macro>\n<ac:structured-macro ac:name=\"section\">\n"
+        else:
+            # Wrap each line in a paragraph tag
+            confluence_content += f"<p>{line}</p>\n"
+    confluence_content += "</ac:structured-macro>"  # Close the last section
+    return confluence_content
+
+#================================================================================================
+# Method which writes formatted output to a file on the local filesystem:
+#================================================================================================
+def save_to_file(output_path, content):
+    """ Saves the formatted content to a file designated by the output path. """
+    with open(output_path, 'w', encoding='utf-8') as file:
+        file.write(content)
+
+#================================================================================================
 # Main method:
 #================================================================================================
 def main():
+    """ Main method to execute the script. """
 #   from getpass import getpass
 #   user = input('Login: ')
 #   pwd = getpass('Password: ')
@@ -91,7 +132,7 @@ def main():
     # Set the title and content of the page to create
     page_title = 'My New HTML Page'
 #   page_html = '<p>This page was created by Andrew Poloni with Python v3.13.3.</p>'
-    page_html = read_text_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/lorem_ipsum_html_cropped.html')
+    page_html = read_text_file_by_line('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/lorem_ipsum_html_cropped.html')
 #   page_html = read_text_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.xml')
 
     #parent_page_id = {Parent Page ID}
