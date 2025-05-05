@@ -132,8 +132,10 @@ def main():
     # Set the title and content of the page to create
     page_title = 'My New HTML Page'
 #   page_html = '<p>This page was created by Andrew Poloni with Python v3.13.3.</p>'
-    page_html = read_text_file_by_line('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/lorem_ipsum_html_cropped.html')
-#   page_html = read_text_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.xml')
+#   page_html = read_text_file_by_line('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/lorem_ipsum_html_cropped.html')
+    page_html = read_text_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.xml')
+    formatted_page_html = format_for_confluence(page_html)
+    save_to_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.html', formatted_page_html)
 
     #parent_page_id = {Parent Page ID}
     parent_page_id = 98383
@@ -158,7 +160,7 @@ def main():
         {
             'storage':
             {
-                'value': page_html,
+                'value': formatted_page_html,
                 'representation': 'wiki',
             }
         }
