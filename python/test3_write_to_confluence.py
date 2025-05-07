@@ -102,113 +102,11 @@ def save_to_file(output_path, content):
         print(f"Content saved to {output_path} ...")
 
 #================================================================================================
-# Method which reads a file at a given input file path, converts it to Confluence markup,
-# and writes the output to a new file at the given output file path.
-#
-# The input file is assumed to be a plain text file with basic formatting.
-# The output file will be a Confluence Wiki Markup file.
-#
-# The function handles basic formatting such as headings, bold, and italic text.
-#
-# The function can be extended to handle more complex formatting as needed.
-#
-# The function uses regular expressions to identify and convert formatting.
+# Method which wraps text in the appropriate tags for Confluence XHTML `storage` format:
 #================================================================================================
-def text_to_confluence(input_filepath, output_filepath):
-    """
-    Reads a text file, attempts to convert basic formatting to Confluence Wiki Markup,
-    and writes the output to a new file.
-
-    Args:
-
-    input_filepath (str): Path to the input text file.
-    output_filepath (str): Path to the output Confluence markup file.
-    """
-    try:
-        with open(input_filepath,  'r', encoding='utf-8') as infile, \
-             open(output_filepath, 'w', encoding='utf-8') as outfile:
-
-            for line in infile:
-            
-                line = line.rstrip('\n')  # Remove trailing newline
-
-                # Basic heading detection (adjust regex as needed):
-                if re.match(r'^\s*#+\s*', line):
-
-                    # Count the number of leading '#' characters to determine heading level:
-                    level = line.lstrip('#').lstrip().count('#') + 1
-                    outfile.write(f"h{level}. {line.lstrip('#').lstrip()}\n")
-
-                elif re.match(r'\*\*\*(.+?)\*\*\*', line):
-
-                    # Convert triple asterisks to Confluence bold markup:
-                    line = re.sub(r'\*\*\*(.+?)\*\*\*', r'*_\1_*', line)
-                    outfile.write(line + '\n')
-
-                elif re.match(r'\*\*\*(.+?)\*', line):
-
-                    # Convert single asterisk to Confluence bold markup:
-                    line = re.sub(r'\*\*\*(.+?)\*', r'*_\1_*', line)
-                    outfile.write(line + '\n')
-
-                elif re.match(r'\*\*(.+?)\*', line):
-
-                    # Convert single asterisk to Confluence bold markup:
-                    line = re.sub(r'\*\*(.+?)\*', r'*_\1_*', line)
-                    outfile.write(line + '\n')
-
-                elif re.match(r'\*\*(.+?)\*\*', line):
-
-                    # Convert double asterisks to Confluence bold markup:
-                    line = re.sub(r'\*\*(.+?)\*\*', r'*_\1_*', line)
-                    outfile.write(line + '\n') 
-
-                elif re.match(r'\*(.+?)\*', line):
-
-                    # Convert single asterisks to Confluence italic markup:
-                    line = re.sub(r'\*(.+?)\*', r'_\1_', line)
-                    outfile.write(line + '\n')
-
-                elif re.match(r'_(.+?)_', line):
-
-                    # Convert single underscores to Confluence italic markup:
-                    line = re.sub(r'_(.+?)_', r'_\1_', line)
-                    outfile.write(line + '\n')
-
-                elif re.match(r'__(.+?)__', line):
-
-                    # Convert double underscores to Confluence italic markup:
-                    # Note: This is a simple example; you may need to adjust for your specific needs.
-                    line = re.sub(r'__(.+?)__', r'_\1_', line)
-                    outfile.write(line + '\n')
-
-                elif re.match(r'~~(.+?)~~', line): 
-                    
-                    # Convert strikethrough to Confluence markup:
-                    line = re.sub(r'~~(.+?)~~', r'~\1~', line)
-                    outfile.write(line + '\n') 
-
-                elif re.match(r'\[(.+?)\]', line):
-
-                    # Convert links to Confluence markup:
-                    line = re.sub(r'\[(.+?)\]', r'[\1]', line)
-                    outfile.write(line + '\n')
-
-                elif re.match(r'\{(.+?)\}', line):
-
-                    # Convert macros to Confluence markup:
-                    line = re.sub(r'\{(.+?)\}', r'{\1}', line)
-                    outfile.write(line + '\n')
-
-                # Add more formatting rules as needed for your text file:
-                else:
-                    outfile.write(line + '\n')
-
-    except FileNotFoundError:
-        print(f"File not found: There was no input file found at {input_filepath}")
-
-    except Exception as e:
-        print(f"An exception occurred: {e}")
+def wrap_in_confluence_format(text):
+    # Wrap in <pre> tags to preserve formatting (like code block):
+    return f"<ac:structured-macro ac:name='code'><ac:plain-text-body><![CDATA[{text}]]></ac:plain-text-body></ac:structured-macro>"
 
 #================================================================================================
 # Main method:
@@ -243,9 +141,11 @@ def main():
     page_title = 'My New HTML Page'
 #   page_html = '<p>This page was created by Andrew Poloni with Python v3.13.3.</p>'
 #   page_html = read_text_file_by_line('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/lorem_ipsum_html_cropped.html')
-    page_html = read_text_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.xml')
+#   page_html = read_text_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.xml')
+    page_html = read_text_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum.txt')
+#   formatted_page_html = wrap_in_confluence_format(page_html)
     formatted_page_html = format_for_confluence(page_html)
-    save_to_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.html', formatted_page_html)
+    save_to_file('/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum_formatted_for_confluence.xhtml', formatted_page_html)
 
     #parent_page_id = {Parent Page ID}
     parent_page_id = 98383
@@ -271,7 +171,7 @@ def main():
             'storage':
             {
                 'value': formatted_page_html,
-                'representation': 'wiki',
+                'representation': 'storage',
             }
         }
     }
