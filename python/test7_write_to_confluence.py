@@ -4,11 +4,17 @@ import os
 import requests
 
 # ==== CONFIGURATION ====
-CONFLUENCE_BASE_URL = "https://your-confluence-server"
-PAT = "your_personal_access_token"
-SPACE_KEY = "YOURSPACE"
+# CONFLUENCE_BASE_URL = "https://your-confluence-server"
+# PAT = "your_personal_access_token"
+# SPACE_KEY = "YOURSPACE"
+# PAGE_TITLE = "My Uploaded Text File"
+# TEXT_FILE_PATH = "your_file.txt"  # The file to upload AND attach
+
+CONFLUENCE_BASE_URL = "http://localhost:8090"
+PAT = "MjA1ODczMzA4OTA2OhMelDOf91qGExdua3d2rqZk/b+5"
+SPACE_KEY = "TUS"
 PAGE_TITLE = "My Uploaded Text File"
-TEXT_FILE_PATH = "your_file.txt"  # The file to upload AND attach
+TEXT_FILE_PATH = "/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum.txt"
 
 # ==== HEADERS ====
 HEADERS = {
@@ -105,8 +111,11 @@ def upload_attachment(page_id: str, file_path: str):
         response.raise_for_status()
         return response.json()
 
+#================================================================================================
+# Main method:
+#================================================================================================
+def main():
 # ==== MAIN ====
-if __name__ == "main":
     try:
         print("Reading file...")
         with open(TEXT_FILE_PATH, 'r', encoding='utf-8') as f:
@@ -126,3 +135,6 @@ if __name__ == "main":
 
     except Exception as e:
         print(f"Error: {e}")
+
+if __name__ == "main":
+   main()
