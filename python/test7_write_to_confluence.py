@@ -11,7 +11,7 @@ def convert_text_to_xhtml(text: str, filename: str) -> str:
     and a downloadable attachment link.
     """
     # Short preview only, to avoid long pages in the browser:
-    preview = html.escape("\n".join(text.splitlines()[:20]))
+#   preview = html.escape("\n".join(text.splitlines()[:20]))
 
     return f"""
 <h1>{filename}</h1>
@@ -21,7 +21,7 @@ def convert_text_to_xhtml(text: str, filename: str) -> str:
 <p><b>Preview:</b></p>
 
 <ac:structured-macro ac:name="code">
-  <ac:plain-text-body><![CDATA[{preview}]]></ac:plain-text-body>
+  <ac:plain-text-body><![CDATA[{text}]]></ac:plain-text-body>
 </ac:structured-macro>
 
 <p><b>Download:</b> <ac:link><ri:attachment ri:filename="{filename}"/></ac:link></p>
