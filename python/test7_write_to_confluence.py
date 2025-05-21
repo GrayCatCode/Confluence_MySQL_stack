@@ -4,32 +4,13 @@ import json
 import os
 import requests
 
-# ==== CONFIGURATION ====
-# CONFLUENCE_BASE_URL = "https://your-confluence-server"
-# PAT = "your_personal_access_token"
-# SPACE_KEY = "YOURSPACE"
-# PAGE_TITLE = "My Uploaded Text File"
-# TEXT_FILE_PATH = "your_file.txt"  # The file to upload AND attach
-
-# CONFLUENCE_BASE_URL = "http://localhost:8090"
-# PAT = "MjA1ODczMzA4OTA2OhMelDOf91qGExdua3d2rqZk/b+5"
-# SPACE_KEY = "TUS"
-# PAGE_TITLE = "New Test User Page 1"
-# TEXT_FILE_PATH = "/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum.txt"
-
-# ==== HEADERS ====
-# HEADERS = {
-#     "Authorization": f"Bearer {PAT}",
-#     "Content-Type": "application/json"
-# }
-
-# ==== CONVERT TEXT TO FORMATTED XHTML ====
+# ==== CONVERT UPLOAD TEXT TO FORMATTED XHTML ====
 def convert_text_to_xhtml(text: str, filename: str) -> str:
     """
     Generates formatted Confluence storage-format XHTML with a heading, text preview,
     and a downloadable attachment link.
     """
-    # Short preview only, to avoid long pages
+    # Short preview only, to avoid long pages in the browser:
     preview = html.escape("\n".join(text.splitlines()[:20]))
 
     return f"""
@@ -46,7 +27,7 @@ def convert_text_to_xhtml(text: str, filename: str) -> str:
 <p><b>Download:</b> <ac:link><ri:attachment ri:filename="{filename}"/></ac:link></p>
 """.strip()
 
-# ==== FIND OR CREATE PAGE ====
+# ==== FIND OR CREATE CONFLUENCE PAGE ====
 def get_page_id_and_version(base_url: str, pat: str, title: str, space_key: str):
     """
     Retrieves the Confluence page ID and version number for a given title and space key.
@@ -86,6 +67,7 @@ def get_page_id_and_version(base_url: str, pat: str, title: str, space_key: str)
 
     return None, None
 
+# ==== CREATE OR UPDATE CONFLUENCE PAGE ====
 def create_or_update_page(base_url: str, pat: str, title: str, space_key: str, content: str):
     """
     Creates or updates a Confluence page with the given title and content.
@@ -143,14 +125,14 @@ def create_or_update_page(base_url: str, pat: str, title: str, space_key: str, c
     response.raise_for_status()
     return response.json()
 
-# ==== UPLOAD ATTACHMENT ====
+# ==== UPLOAD ATTACHMENT TO CONFLUENCE PAGE ====
 def upload_attachment(base_url: str, pat: str, page_id: str, file_path: str):
     """
     Uploads a file attachment to a Confluence page.
 
-    base_url: The base URL of the Confluence server.
-    pat: Personal Access Token for authentication.
-    page_id: The ID of the Confluence page to which the attachment will be uploaded.
+    base_url:  The base URL of the Confluence server.
+    pat:       Personal Access Token for authentication.
+    page_id:   The ID of the Confluence page to which the attachment will be uploaded.
     file_path: The full path to the file to be uploaded.
 
     Returns the response from the Confluence API.
@@ -183,6 +165,10 @@ def upload_attachment(base_url: str, pat: str, page_id: str, file_path: str):
 def main():
 # ==== MAIN ====
 
+    # Create the argument parser:
+    # This will allow the user to specify the parameters required to upload a text file to Confluence.
+    # The parameters include the Confluence base URL, personal access token, space key,
+    # page title, and the text file path.
     parser = argparse.ArgumentParser(description="Parameters required to upload a text file to Confluence.")
 
     # Positional argument for the Confluence base URL:
@@ -218,18 +204,28 @@ def main():
     # Parse the command-line arguments:
     args = parser.parse_args()
 
+    # Do the magic:
+    # Read the text file, convert it to XHTML, and create/update the Confluence page.
     try:
-        print("Reading file...")
+        print("Reading file: " + args.text_file)
+
+        # Read the text file to be written to Confluence:
         with open(args.text_file, 'r', encoding='utf-8') as f:
             text_content = f.read()
 
         filename = os.path.basename(args.text_file)
+
+        # Convert the text file content to XHTML:
         formatted_xhtml = convert_text_to_xhtml(text_content, filename)
 
         print("Creating/updating Confluence page...")
+
+        # Create or update the Confluence page with the formatted XHTML:
         page_info = create_or_update_page(args.confluence_base_url, args.personal_access_token, args.page_title, args.space_key, formatted_xhtml)
 
         page_id = page_info['id']
+
+        # Upload the file as an attachment to the same Confluence page:
         upload_attachment(args.confluence_base_url, args.personal_access_token, page_id, args.text_file)
 
         print("Success!")
