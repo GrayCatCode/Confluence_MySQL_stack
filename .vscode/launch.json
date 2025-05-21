@@ -10,7 +10,14 @@
          "type": "debugpy",
          "request": "launch",
          "program": "${file}",
-         "console": "integratedTerminal"
+         "console": "integratedTerminal",
+         "args": [
+            "--confluence_base_url", "http://localhost:8090",
+            "--personal_access_token", "MjA1ODczMzA4OTA2OhMelDOf91qGExdua3d2rqZk/b+5",
+            "--space_key", "TUS",
+            "--page_title", "New Test User Page 1",
+            "--text_file", "/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum.txt"
+         ]
       }
    ]
 }

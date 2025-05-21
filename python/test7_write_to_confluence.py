@@ -1,3 +1,4 @@
+import argparse
 import html
 import json
 import os
@@ -10,17 +11,17 @@ import requests
 # PAGE_TITLE = "My Uploaded Text File"
 # TEXT_FILE_PATH = "your_file.txt"  # The file to upload AND attach
 
-CONFLUENCE_BASE_URL = "http://localhost:8090"
-PAT = "MjA1ODczMzA4OTA2OhMelDOf91qGExdua3d2rqZk/b+5"
-SPACE_KEY = "TUS"
-PAGE_TITLE = "My Uploaded Text File"
-TEXT_FILE_PATH = "/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum.txt"
+# CONFLUENCE_BASE_URL = "http://localhost:8090"
+# PAT = "MjA1ODczMzA4OTA2OhMelDOf91qGExdua3d2rqZk/b+5"
+# SPACE_KEY = "TUS"
+# PAGE_TITLE = "New Test User Page 1"
+# TEXT_FILE_PATH = "/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum.txt"
 
 # ==== HEADERS ====
-HEADERS = {
-    "Authorization": f"Bearer {PAT}",
-    "Content-Type": "application/json"
-}
+# HEADERS = {
+#     "Authorization": f"Bearer {PAT}",
+#     "Content-Type": "application/json"
+# }
 
 # ==== CONVERT TEXT TO FORMATTED XHTML ====
 def convert_text_to_xhtml(text: str, filename: str) -> str:
@@ -46,14 +47,35 @@ def convert_text_to_xhtml(text: str, filename: str) -> str:
 """.strip()
 
 # ==== FIND OR CREATE PAGE ====
-def get_page_id_and_version(title: str, space_key: str):
-    url = f"{CONFLUENCE_BASE_URL}/rest/api/content"
+def get_page_id_and_version(base_url: str, pat: str, title: str, space_key: str):
+    """
+    Retrieves the Confluence page ID and version number for a given title and space key.
+    If the page does not exist, it returns None.
+
+    base_url: The base URL of the Confluence server.
+    pat: Personal Access Token for authentication.
+    title: The title of the Confluence page.
+    space_key: The space key where the page will be created/updated.
+
+    Returns the page ID and version number if the page exists, otherwise returns None.
+
+    Raises an exception if the request fails.
+    """
+
+    url = f"{base_url}/rest/api/content"
+
     params = {
         "title": title,
         "spaceKey": space_key,
         "expand": "version"
     }
-    response = requests.get(url, params=params, headers=HEADERS)
+
+    headers_with_pat = {
+        "Authorization": f"Bearer {pat}",
+        "Content-Type": "application/json"
+    } 
+
+    response = requests.get(url, params=params, headers=headers_with_pat)
     response.raise_for_status()
 
     results = response.json().get("results", [])
@@ -64,8 +86,29 @@ def get_page_id_and_version(title: str, space_key: str):
 
     return None, None
 
-def create_or_update_page(title: str, space_key: str, content: str):
-    page_id, version = get_page_id_and_version(title, space_key)
+def create_or_update_page(base_url: str, pat: str, title: str, space_key: str, content: str):
+    """
+    Creates or updates a Confluence page with the given title and content.
+    If a page with the same title exists, it will be updated. Otherwise, a new page will be created.
+
+    base_url: The base URL of the Confluence server.
+    pat: Personal Access Token for authentication.
+    title: The title of the Confluence page.
+    space_key: The space key where the page will be created/updated.
+    content: The content to be added to the page in XHTML format.
+
+    Returns the response from the Confluence API.
+
+    If the page is created, it returns the new page ID.
+    If the page is updated, it returns the updated page ID.
+
+    Raises an exception if the request fails.
+    """
+
+    # Check if the page already exists:
+    # If it does, get the page ID and version number;
+    # If it doesn't, create a new page.
+    page_id, version = get_page_id_and_version(base_url, pat, title, space_key)
 
     body = {
         "type": "page",
@@ -79,35 +122,58 @@ def create_or_update_page(title: str, space_key: str, content: str):
         }
     }
 
+    headers_with_pat = {
+         "Authorization": f"Bearer {pat}",
+         "Content-Type": "application/json"
+     }
+
     if page_id:
 
         print(f"Updating page ID {page_id}...")
         body["version"] = {"number": version + 1}
-        url = f"{CONFLUENCE_BASE_URL}/rest/api/content/{page_id}"
-        response = requests.put(url, headers=HEADERS, data=json.dumps(body))
+        url = f"{base_url}/rest/api/content/{page_id}"
+        response = requests.put(url, headers=headers_with_pat, data=json.dumps(body))
 
     else:
 
         print("Creating new page...")
-        url = f"{CONFLUENCE_BASE_URL}/rest/api/content"
-        response = requests.post(url, headers=HEADERS, data=json.dumps(body))
+        url = f"{base_url}/rest/api/content"
+        response = requests.post(url, headers=headers_with_pat, data=json.dumps(body))
 
     response.raise_for_status()
     return response.json()
 
 # ==== UPLOAD ATTACHMENT ====
-def upload_attachment(page_id: str, file_path: str):
+def upload_attachment(base_url: str, pat: str, page_id: str, file_path: str):
+    """
+    Uploads a file attachment to a Confluence page.
+
+    base_url: The base URL of the Confluence server.
+    pat: Personal Access Token for authentication.
+    page_id: The ID of the Confluence page to which the attachment will be uploaded.
+    file_path: The full path to the file to be uploaded.
+
+    Returns the response from the Confluence API.
+
+    Raises an exception if the request fails.
+    """
+
     filename = os.path.basename(file_path)
-    url = f"{CONFLUENCE_BASE_URL}/rest/api/content/{page_id}/child/attachment"
 
-    headers = { "Authorization": f"Bearer {PAT}" }
+    attachment_url = f"{base_url}/rest/api/content/{page_id}/child/attachment"
 
-    with open(file_path, 'rb') as f:
-        files = { 'file': (filename, f), }
-        params = { 'minorEdit': 'true' }
+    headers_with_pat = {
+         "X-Atlassian-Token": "no-check",
+         "Authorization": f"Bearer {pat}",
+     }
+
+    with open(file_path, 'rb') as file_data:
+
+        upload_file = { "file": (filename, file_data, "application/octet-stream") }
 
         print(f"Uploading attachment: {filename}")
-        response = requests.post(url, headers=headers, params=params, files=files)
+
+        response = requests.post(attachment_url, headers=headers_with_pat, files=upload_file)
         response.raise_for_status()
         return response.json()
 
@@ -116,25 +182,61 @@ def upload_attachment(page_id: str, file_path: str):
 #================================================================================================
 def main():
 # ==== MAIN ====
+
+    parser = argparse.ArgumentParser(description="Parameters required to upload a text file to Confluence.")
+
+    # Positional argument for the Confluence base URL:
+    parser.add_argument("--confluence_base_url",
+                        "-u",
+                        required=True,
+                        help="The base URL of the Confluence server (http(s)://hostname:port_no).")
+
+    # Positional argument for the personal access token:
+    parser.add_argument("--personal_access_token",
+                        "-p",
+                        required=True,
+                        help="User personal access token for Confluence.")
+
+    # Positional argument for the space key:
+    parser.add_argument("--space_key",
+                        "-k",
+                        required=True,
+                        help="The space key where the page will be created/updated.")
+
+    # Positional argument for the page title:
+    parser.add_argument("--page_title",
+                        "-t",
+                        required=True,
+                        help="The title of the Confluence page to create/update.")
+
+    # Positional argument for the text file path:
+    parser.add_argument("--text_file",
+                        "-f",
+                        required=True,
+                        help="Full path to the text file to upload to Confluence.")
+
+    # Parse the command-line arguments:
+    args = parser.parse_args()
+
     try:
         print("Reading file...")
-        with open(TEXT_FILE_PATH, 'r', encoding='utf-8') as f:
+        with open(args.text_file, 'r', encoding='utf-8') as f:
             text_content = f.read()
 
-        filename = os.path.basename(TEXT_FILE_PATH)
+        filename = os.path.basename(args.text_file)
         formatted_xhtml = convert_text_to_xhtml(text_content, filename)
 
         print("Creating/updating Confluence page...")
-        page_info = create_or_update_page(PAGE_TITLE, SPACE_KEY, formatted_xhtml)
+        page_info = create_or_update_page(args.confluence_base_url, args.personal_access_token, args.page_title, args.space_key, formatted_xhtml)
 
         page_id = page_info['id']
-        upload_attachment(page_id, TEXT_FILE_PATH)
+        upload_attachment(args.confluence_base_url, args.personal_access_token, page_id, args.text_file)
 
         print("Success!")
-        print(f"View your page at: {CONFLUENCE_BASE_URL}{page_info['_links']['webui']}")
+        print(f"View your page at: {args.confluence_base_url}{page_info['_links']['webui']}")
 
     except Exception as e:
         print(f"Error: {e}")
 
-if __name__ == "main":
+if __name__ == "__main__":
    main()
