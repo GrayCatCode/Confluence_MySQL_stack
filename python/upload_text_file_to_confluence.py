@@ -1,5 +1,6 @@
 import argparse
 from   datetime import date
+from   datetime import datetime
 import json
 import os
 import requests
@@ -27,6 +28,56 @@ def convert_text_to_xhtml(text: str, filename: str) -> str:
 
 <p><b>Download:</b> <ac:link><ri:attachment ri:filename="{filename}"/></ac:link></p>
 """.strip()
+
+# ==== GET THE parent PAGE ID (VERIFY PAGE EXISTS) ====
+def get_parent_page_id(base_url: str, pat: str, title: str, space_key: str):
+    """
+    Checks if a Confluence page with the given title and space key exists.
+    If it does not exist, raises an exception.
+
+    base_url:  The base URL of the Confluence server.
+    pat:       Personal Access Token for authentication.
+    title:     The title of the Confluence page.
+    space_key: The space key where the page should exist.
+
+    Raises an exception if the page does not exist.
+    """
+
+    # Set the URL for the Confluence API to search for the page:
+    url = f"{base_url}/rest/api/content"
+
+    # Set the parameters for the GET request:
+    params = {
+        "title": title,
+        "spaceKey": space_key
+    }
+
+    # Create the headers for the request to include the personal access token for authentication:
+    headers_with_pat = {
+        "Authorization": f"Bearer {pat}",
+        "Content-Type": "application/json"
+    } 
+
+    # Make the GET request to Confluence to try to find the page we're looking for:
+    response = requests.get(url, params=params, headers=headers_with_pat)
+
+    # Check if the request was successful:
+    response.raise_for_status()
+
+    # Parse the JSON response:
+    results = response.json().get("results", [])
+
+    # If the page does not exist, raise an exception:
+    if not results:
+
+        raise Exception(f"The specified parent page '{title}' does not exist in space '{space_key}'.")
+
+    else:
+
+        print(f"The specified parent page '{title}' exists in space '{space_key}'.")
+
+        # Return the ID of the parent page:
+        return results[0]["id"]
 
 # ==== FIND OR CREATE CONFLUENCE PAGE ====
 def get_page_id_and_version(base_url: str, pat: str, title: str, space_key: str):
@@ -75,7 +126,7 @@ def get_page_id_and_version(base_url: str, pat: str, title: str, space_key: str)
     return None, None
 
 # ==== CREATE OR UPDATE CONFLUENCE PAGE ====
-def create_or_update_page(base_url: str, pat: str, title: str, space_key: str, content: str):
+def create_or_update_page(base_url: str, pat: str, parent_page_id: str, title: str, space_key: str, content: str):
     """
     Creates or updates a Confluence page with the given title and content.
     If a page with the same title exists, it will be updated. Otherwise, a new page will be created.
@@ -97,13 +148,14 @@ def create_or_update_page(base_url: str, pat: str, title: str, space_key: str, c
     # Check if the page already exists:
     # If it does, get the page ID and version number;
     # If it doesn't, create a new page.
-    page_id, version = get_page_id_and_version(base_url, pat, title, space_key)
+#   page_id, version = get_page_id_and_version(base_url, pat, title, space_key)
 
     # Prepare the request body for creating or updating the page:
     body = {
         "type": "page",
         "title": title,
         "space": {"key": space_key},
+        "ancestors": [{"id": parent_page_id}],
         "body": {
             "storage": {
                 "value": content,
@@ -118,29 +170,13 @@ def create_or_update_page(base_url: str, pat: str, title: str, space_key: str, c
          "Content-Type": "application/json"
      }
 
-    # If the page exists in Confluence, update it:
-    if page_id:
+    print("Creating new page...")
 
-        print(f"Updating page ID {page_id} ...")
+    # Set the Confluence URL for creating new content:
+    url = f"{base_url}/rest/api/content"
 
-        # Update the version number in the request body:
-        body["version"] = {"number": version + 1}
-
-        # Set the page ID in the URL:
-        url = f"{base_url}/rest/api/content/{page_id}"
-
-        # Make the PUT request to update the page:
-        response = requests.put(url, headers=headers_with_pat, data=json.dumps(body))
-
-    else: # The page does not exist, so create a new one:
-
-        print("Creating new page...")
-
-        # Set the URL for creating a new page:
-        url = f"{base_url}/rest/api/content"
-
-        # Make the POST request to create the page:
-        response = requests.post(url, headers=headers_with_pat, data=json.dumps(body))
+    # Make the POST request to create the page:
+    response = requests.post(url, headers=headers_with_pat, data=json.dumps(body))
 
     # Check if the request was successful:
     response.raise_for_status()
@@ -205,8 +241,8 @@ def main():
     #
     # - Confluence base URL
     # - personal access token for authentication
-    # - Confluence space key,
-    # - Confluence page title
+    # - Confluence space key
+    # - Confluence parent page title
     # - path to the text file to be uploaded
     #
     parser = argparse.ArgumentParser(description="Parameters required to upload a text file to Confluence.")
@@ -229,8 +265,8 @@ def main():
                         required=True,
                         help="The Confluence space key where the page will be created/updated.")
 
-    # Positional argument for the page title:
-    parser.add_argument("--page_title",
+    # Positional argument for the parent page title:
+    parser.add_argument("--parent_page_title",
                         "-t",
                         required=True,
                         help="The title of the Confluence page to create/update.")
@@ -247,6 +283,10 @@ def main():
     # Do the magic:
     # Read the text file, convert it to XHTML, and create/update the Confluence page.
     try:
+        # Check for the specified parent page and verify that it exists; if it doesn't,
+        # we're not going to be able to create a chile page under it with the uploaded text file.
+        parent_page_id = get_parent_page_id(args.confluence_base_url, args.personal_access_token, args.parent_page_title, args.space_key)
+
         print("Reading file: " + args.text_file)
 
         # Read the text file to be written to Confluence:
@@ -263,14 +303,18 @@ def main():
         # Get the current date to use to create the Confluence page title:
         today = date.today()
         day = today.day
-        month = today.month
         month_name = today.strftime("%b")
         year = today.year
 
+        # Get the current time to use to create the Confluence page title:
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S %p")
+
         print("Today's date is: " + str(day) + " " + str(month_name) + " " + str(year))
+        upload_page_title= f"{day} {month_name} {year} {current_time}"
         
         # Create or update the Confluence page with the formatted XHTML:
-        page_info = create_or_update_page(args.confluence_base_url, args.personal_access_token, args.page_title, args.space_key, formatted_xhtml)
+        page_info = create_or_update_page(args.confluence_base_url, args.personal_access_token, parent_page_id, upload_page_title, args.space_key, formatted_xhtml)
 
         page_id = page_info['id']
 

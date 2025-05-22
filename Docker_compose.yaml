@@ -1,4 +1,4 @@
-name: confluence-7.19-mysql-stack
+name: confluence-8.5.21-mysql-stack
 
 services:
   mysql:
@@ -17,7 +17,7 @@ services:
     - confluence_network
 
   confluence:
-    image: atlassian/confluence:7.19.0-ubuntu-jdk11-mysqlj
+    image: atlassian/confluence:8.5.21-ubuntu-jdk17-mysqlj
     restart: no
     ports:
     - 8090:8090

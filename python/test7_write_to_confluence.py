@@ -263,7 +263,6 @@ def main():
         # Get the current date to use to create the Confluence page title:
         today = date.today()
         day = today.day
-        month = today.month
         month_name = today.strftime("%b")
         year = today.year
 
