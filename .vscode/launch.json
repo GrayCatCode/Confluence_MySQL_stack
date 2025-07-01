@@ -4,7 +4,7 @@
    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
    "version": "0.2.0",
    "configurations": [
-      
+
       {
          "name": "Python Debugger: Current File",
          "type": "debugpy",
@@ -13,9 +13,9 @@
          "console": "integratedTerminal",
          "args": [
             "--confluence_base_url", "http://localhost:8090",
-            "--personal_access_token", "MDM1NTk1Mzc1NDk5Otp8NH7lqlkqlxKdzG3N4T3mtG2z",
-            "--space_key", "TUS",
-            "--parent_page_title", "Upload Anchor Page"
+            "--personal_access_token", "MzAyOTMyMzM2NzcxOg3XPVEHPGY19dUJ37XnC6TBAbrl",
+            "--space_key", "TS",
+            "--parent_page_title", "Test Space Anchor Page",
             "--text_file", "/Users/andrewpoloni/Git_repos/Confluence_MySQL_stack/python/Lorem_ipsum.txt"
          ]
       }

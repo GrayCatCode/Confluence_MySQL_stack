@@ -1,6 +1,7 @@
 import argparse
-from   datetime import date
-from   datetime import datetime
+from   atlassian import Confluence
+from   datetime  import date
+from   datetime  import datetime
 import json
 import os
 import requests
@@ -56,7 +57,7 @@ def get_parent_page_id(base_url: str, pat: str, title: str, space_key: str):
     headers_with_pat = {
         "Authorization": f"Bearer {pat}",
         "Content-Type": "application/json"
-    } 
+    }
 
     # Make the GET request to Confluence to try to find the page we're looking for:
     response = requests.get(url, params=params, headers=headers_with_pat)
@@ -109,7 +110,7 @@ def get_page_id_and_version(base_url: str, pat: str, title: str, space_key: str)
     headers_with_pat = {
         "Authorization": f"Bearer {pat}",
         "Content-Type": "application/json"
-    } 
+    }
 
     # Make the GET request to Confluence to find the page we're looking for:
     response = requests.get(url, params=params, headers=headers_with_pat)
@@ -170,7 +171,7 @@ def create_or_update_page(base_url: str, pat: str, parent_page_id: str, title: s
          "Content-Type": "application/json"
      }
 
-    print("Creating new page...")
+    print("- Creating new page...")
 
     # Set the Confluence URL for creating new content:
     url = f"{base_url}/rest/api/content"
@@ -217,7 +218,7 @@ def upload_attachment(base_url: str, pat: str, page_id: str, file_path: str):
         # Prepare the file data for the request:
         upload_file = { "file": (filename, file_data, "application/octet-stream") }
 
-        print(f"Uploading attachment: {filename}")
+        print(f"- Uploading attachment: {filename}")
 
         # Make the POST request to upload the attachment:
         response = requests.post(attachment_url, headers=headers_with_pat, files=upload_file)
@@ -283,11 +284,55 @@ def main():
     # Do the magic:
     # Read the text file, convert it to XHTML, and create/update the Confluence page.
     try:
+        # Creata a Confluence object to interact with the Confluence API:
+        print("========================================================================")
+        print("- Using Confluence base URL: " + args.confluence_base_url)
+        print("------------------------------------------------------------------------")
+
+        aether_confluence_instance = Confluence(
+            url=args.confluence_base_url,
+            token=args.personal_access_token)
+
         # Check for the specified parent page and verify that it exists; if it doesn't,
         # we're not going to be able to create a chile page under it with the uploaded text file.
-        parent_page_id = get_parent_page_id(args.confluence_base_url, args.personal_access_token, args.parent_page_title, args.space_key)
+#       parent_page_id = get_parent_page_id(args.confluence_base_url, args.personal_access_token, args.parent_page_title, args.space_key)
 
-        print("Reading file: " + args.text_file)
+        parent_page_id = aether_confluence_instance.get_page_by_title(
+            space=args.space_key,
+            title=args.parent_page_title)
+
+        if not parent_page_id:
+
+            # If the parent page ID is not found, raise an exception and quit:
+            raise Exception(f"The specified parent page '{args.parent_page_title}' does not exist in space '{args.space_key}'.")
+
+        else:
+            print(f"- Confluence page found; parent page ID is '{parent_page_id['id']}'.")
+            print("------------------------------------------------------------------------")
+
+        # Print the text file to be uploaded:
+        if not os.path.isfile(args.text_file):
+
+            # If the text file does not exist, raise an exception and quit:
+            raise Exception(f"- The specified text file to be uploaded '{args.text_file}' does not exist.")
+            print("========================================================================")
+
+        elif not os.access(args.text_file, os.R_OK):
+
+            # If the text file is not readable, raise an exception and quit:
+            raise Exception(f"- The specified text file to be uploaded '{args.text_file}' is not readable.")
+            print("========================================================================")
+
+        elif not os.path.getsize(args.text_file):
+
+            # If the text file is empty, raise an exception and quit:
+            raise Exception(f"- The specified text file to be uploaded '{args.text_file}' is empty.")
+            print("========================================================================")
+
+        else:
+            print(f"- Reading upload file: ")
+            print(f"- {args.text_file}")
+            print("------------------------------------------------------------------------")
 
         # Read the text file to be written to Confluence:
         with open(args.text_file, 'r', encoding='utf-8') as f:
@@ -297,8 +342,6 @@ def main():
 
         # Convert the text file content to XHTML:
         formatted_xhtml = convert_text_to_xhtml(text_content, filename)
-
-        print("Creating/updating Confluence page...")
 
         # Get the current date to use to create the Confluence page title:
         today = date.today()
@@ -310,9 +353,17 @@ def main():
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S %p")
 
-        print("Today's date is: " + str(day) + " " + str(month_name) + " " + str(year))
+#       print("Today's date is: " + str(day) + " " + str(month_name) + " " + str(year))
+#       print("Current time is: " + str(current_time))
+
         upload_page_title= f"{day} {month_name} {year} {current_time}"
-        
+
+        print(f"- Creating/updating Confluence page \"{upload_page_title}\" ...")
+        print(f"- under parent page ID {parent_page_id['id']}, ...")
+        print(f"- title \"{parent_page_id['title']}\", ...")
+        print(f"- in space: {args.space_key}")
+        print("------------------------------------------------------------------------")
+
         # Create or update the Confluence page with the formatted XHTML:
         page_info = create_or_update_page(args.confluence_base_url, args.personal_access_token, parent_page_id, upload_page_title, args.space_key, formatted_xhtml)
 
@@ -322,8 +373,10 @@ def main():
         upload_attachment(args.confluence_base_url, args.personal_access_token, page_id, args.text_file)
 
         # Print the URL where the page can be viewed:
-        print("Success!")
-        print(f"View your page at: {args.confluence_base_url}{page_info['_links']['webui']}")
+        print("------------------------------------------------------------------------")
+        print(f"- Success!  View the page at: ")
+        print(f"- {args.confluence_base_url}{page_info['_links']['webui']}")
+        print("========================================================================")
 
     except Exception as e:
         print(f"Error: {e}")
