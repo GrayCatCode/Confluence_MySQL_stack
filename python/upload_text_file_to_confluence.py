@@ -127,16 +127,16 @@ def get_page_id_and_version(base_url: str, pat: str, title: str, space_key: str)
     return None, None
 
 # ==== CREATE OR UPDATE CONFLUENCE PAGE ====
-def create_or_update_page(base_url: str, pat: str, parent_page_id: str, title: str, space_key: str, content: str):
+def create_or_update_page(confluence: Confluence, pat: str, parent_page_id: str, title: str, space_key: str, content: str):
     """
     Creates or updates a Confluence page with the given title and content.
     If a page with the same title exists, it will be updated. Otherwise, a new page will be created.
 
-    base_url:  The base URL of the Confluence server.
-    pat:       Personal Access Token for authentication.
-    title:     The title of the Confluence page.
-    space_key: The space key where the page will be created/updated.
-    content:   The content to be added to the page in XHTML format.
+    confluence_obj:  The Confluence object to interact with the Confluence API.
+    pat:             Personal Access Token for authentication.
+    title:           The title of the Confluence page.
+    space_key:       The space key where the page will be created/updated.
+    content:         The content to be added to the page in XHTML format.
 
     Returns the response from the Confluence API.
 
@@ -171,13 +171,19 @@ def create_or_update_page(base_url: str, pat: str, parent_page_id: str, title: s
          "Content-Type": "application/json"
      }
 
+    username = "test-user1"
+    password = "P@$$w0rd"
+    pw_auth = (username, password)
+
     print("- Creating new page...")
 
-    # Set the Confluence URL for creating new content:
-    url = f"{base_url}/rest/api/content"
+    post_data = json.dumps(body)
 
     # Make the POST request to create the page:
-    response = requests.post(url, headers=headers_with_pat, data=json.dumps(body))
+#   response = requests.post(url, headers=headers_with_pat, data=post_data)
+#   response = requests.post(url, auth=pw_auth, data=post_data)
+
+    confluence.update_or_create_page(space_key=space_key, title=title, body=content, parent_id=parent_page_id)
 
     # Check if the request was successful:
     response.raise_for_status()
@@ -365,17 +371,32 @@ def main():
         print("------------------------------------------------------------------------")
 
         # Create or update the Confluence page with the formatted XHTML:
-        page_info = create_or_update_page(args.confluence_base_url, args.personal_access_token, parent_page_id, upload_page_title, args.space_key, formatted_xhtml)
+        aether_confluence_instance.update_or_create(parent_id=parent_page_id['id'], title=upload_page_title, body=formatted_xhtml, representation="storage", full_width=False)
 
-        page_id = page_info['id']
+#       page_id = page_info['id']
+
+        upload_page_id = aether_confluence_instance.get_page_by_title(
+            space=args.space_key,
+            title=upload_page_title)
+
+        print("Attaching file to the page...")
 
         # Upload the file as an attachment to the same Confluence page:
-        upload_attachment(args.confluence_base_url, args.personal_access_token, page_id, args.text_file)
+#       upload_attachment(args.confluence_base_url, args.personal_access_token, page_id, args.text_file)
+        aether_confluence_instance.attach_file(
+            page_id=upload_page_id['id'],
+            filename=args.text_file,
+            name=filename,
+            title=filename,
+            space=args.space_key,
+            comment="Uploaded via cron job script.")
+
+        upload_page_properties = aether_confluence_instance.get_page_by_id(page_id=upload_page_id['id'])
 
         # Print the URL where the page can be viewed:
         print("------------------------------------------------------------------------")
         print(f"- Success!  View the page at: ")
-        print(f"- {args.confluence_base_url}{page_info['_links']['webui']}")
+        print(f"- {args.confluence_base_url}{upload_page_properties['_links']['webui']}")
         print("========================================================================")
 
     except Exception as e:
