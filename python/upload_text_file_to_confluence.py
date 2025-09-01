@@ -371,7 +371,12 @@ def main():
         print("------------------------------------------------------------------------")
 
         # Create or update the Confluence page with the formatted XHTML:
-        aether_confluence_instance.update_or_create(parent_id=parent_page_id['id'], title=upload_page_title, body=formatted_xhtml, representation="storage", full_width=False)
+        aether_confluence_instance.update_or_create(
+            parent_id=parent_page_id['id'],
+            title=upload_page_title,
+            body=formatted_xhtml,
+            representation="storage",
+            full_width=False)
 
 #       page_id = page_info['id']
 
